@@ -99,10 +99,12 @@ export function SupabaseDashboard({ productName, productImageUrl }: SupabaseDash
   useEffect(() => {
     async function fetchData() {
       try {
+        console.log("[v0] Fetching data for product:", productName)
         setLoading(true)
         setError(null)
 
         const data = await fetchProductData(productName)
+        console.log("[v0] Received data rows:", data.length)
         
         if (data.length === 0) {
           setError("No data available. Please import data first.")
@@ -111,9 +113,12 @@ export function SupabaseDashboard({ productName, productImageUrl }: SupabaseDash
         }
         
         const transformedMetrics = transformSupabaseToMetricData(data)
+        console.log("[v0] Transformed metrics count:", transformedMetrics.length)
+        console.log("[v0] Metric names:", transformedMetrics.map(m => m.name))
         setRawMetrics(transformedMetrics)
         
         const wowData = calculateWeekOverWeek(transformedMetrics)
+        console.log("[v0] Week-over-week calculated for", wowData.length, "metrics")
         setMetrics(wowData)
       } catch (err) {
         console.error("[v0] Error fetching Supabase data:", err)

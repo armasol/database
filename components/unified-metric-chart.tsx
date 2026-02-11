@@ -10,6 +10,7 @@ import { Line, LineChart, Area, AreaChart, ComposedChart, XAxis, YAxis, Responsi
 import type { MetricAnalysis, MetricData } from "@/lib/data-processor"
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, CalendarIcon } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { MetricCheckbox } from "./MetricCheckbox" // Import MetricCheckbox component
 
 interface UnifiedMetricChartProps {
   metrics: MetricAnalysis[]
@@ -542,214 +543,167 @@ export function UnifiedMetricChart({ metrics: initialMetrics, rawMetrics, produc
                 Select at least one metric to view the chart
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={500}>
-                <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <defs>
+              <div className="w-full h-[500px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <defs>
+                      {selectedMetrics.map((metricName) => {
+                        const metricIndex = metrics.findIndex((m) => m.name === metricName)
+                        const baseColor = COLORS[metricIndex % COLORS.length]
+                        return (
+                          <linearGradient key={`gradient-${metricName}`} id={`gradient-${metricName}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={baseColor} stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor={baseColor} stopOpacity={0.05}/>
+                          </linearGradient>
+                        )
+                      })}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+                    <XAxis
+                      dataKey={viewMode === "week" ? "week" : "day"}
+                      label={{ value: viewMode === "week" ? "Week" : "Day", position: "insideBottom", offset: -5 }}
+                      stroke="hsl(var(--foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis stroke="hsl(var(--foreground))" fontSize={12} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload || payload.length === 0) return null
+
+                        const filteredPayload = showComparison
+                          ? payload
+                          : payload.filter((entry) => {
+                              const dataKey = entry.dataKey?.toString() || ""
+                              return dataKey.includes("_current")
+                            })
+
+                        if (filteredPayload.length === 0) return null
+
+                        return (
+                          <div className="rounded-lg border border-border bg-card p-3 shadow-xl max-w-xs backdrop-blur-sm">
+                            {filteredPayload.map((entry, i) => {
+                              const dataKey = entry.dataKey?.toString() || ""
+                              const period = dataKey.includes("_current") ? "Current Period" : "Previous Period"
+                              const metricName = dataKey.replace("_current", "").replace("_previous", "")
+
+                              if (viewMode === "week") {
+                                const datesKey = dataKey.includes("_current")
+                                  ? `${metricName}_current_dates`
+                                  : `${metricName}_previous_dates`
+                                const dates = entry.payload[datesKey] as string[]
+                                const dateRange =
+                                  dates && dates.length > 0 ? `${dates[0]} - ${dates[dates.length - 1]}` : ""
+                                const value = entry.value
+
+                                return (
+                                  <div key={i} className="mb-2 last:mb-0">
+                                    <p className="text-xs font-semibold" style={{ color: entry.color }}>
+                                      {metricName} - {period}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{dateRange}</p>
+                                    <p className="text-sm font-bold">{formatValue(metricName, Number(value))}</p>
+                                  </div>
+                                )
+                              } else {
+                                const dateKey = dataKey.includes("_current")
+                                  ? `${metricName}_current_date`
+                                  : `${metricName}_previous_date`
+                                const date = entry.payload[dateKey]
+                                const value = entry.value
+
+                                return (
+                                  <div key={i} className="mb-2 last:mb-0">
+                                    <p className="text-xs font-semibold" style={{ color: entry.color }}>
+                                      {metricName} - {period}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{date}</p>
+                                    <p className="text-sm font-bold">{formatValue(metricName, Number(value))}</p>
+                                  </div>
+                                )
+                              }
+                            })}
+                          </div>
+                        )
+                      }}
+                    />
+                    <Legend
+                      formatter={(value) => {
+                        const isCurrentWeek = value.includes("_current")
+                        const metricName = value.replace("_current", "").replace("_previous", "")
+                        return `${metricName} (${isCurrentWeek ? "Current" : "Previous"})`
+                      }}
+                      wrapperStyle={{ paddingTop: "20px" }}
+                    />
                     {selectedMetrics.map((metricName) => {
                       const metricIndex = metrics.findIndex((m) => m.name === metricName)
                       const baseColor = COLORS[metricIndex % COLORS.length]
-                      return (
-                        <linearGradient key={`gradient-${metricName}`} id={`gradient-${metricName}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={baseColor} stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor={baseColor} stopOpacity={0.05}/>
-                        </linearGradient>
-                      )
-                    })}
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis
-                    dataKey={viewMode === "week" ? "week" : "day"}
-                    label={{ value: viewMode === "week" ? "Week" : "Day", position: "insideBottom", offset: -5 }}
-                    stroke="hsl(var(--foreground))"
-                    fontSize={12}
-                  />
-                  <YAxis stroke="hsl(var(--foreground))" fontSize={12} />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload || payload.length === 0) return null
-
-                      const filteredPayload = showComparison
-                        ? payload
-                        : payload.filter((entry) => {
-                            const dataKey = entry.dataKey?.toString() || ""
-                            return dataKey.includes("_current")
-                          })
-
-                      if (filteredPayload.length === 0) return null
+                      const isGMV = metricName.includes("GMV")
+                      const shouldShowAsArea = isGMV
 
                       return (
-                        <div className="rounded-lg border border-border bg-card p-3 shadow-xl max-w-xs backdrop-blur-sm">
-                          {filteredPayload.map((entry, i) => {
-                            const dataKey = entry.dataKey?.toString() || ""
-                            const period = dataKey.includes("_current") ? "Current Period" : "Previous Period"
-                            const metricName = dataKey.replace("_current", "").replace("_previous", "")
-
-                            if (viewMode === "week") {
-                              const datesKey = dataKey.includes("_current")
-                                ? `${metricName}_current_dates`
-                                : `${metricName}_previous_dates`
-                              const dates = entry.payload[datesKey] as string[]
-                              const dateRange =
-                                dates && dates.length > 0 ? `${dates[0]} - ${dates[dates.length - 1]}` : ""
-                              const value = entry.value
-
-                              return (
-                                <div key={i} className="mb-2 last:mb-0">
-                                  <p className="text-xs font-semibold" style={{ color: entry.color }}>
-                                    {metricName} - {period}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">{dateRange}</p>
-                                  <p className="text-sm font-bold">{formatValue(metricName, Number(value))}</p>
-                                </div>
-                              )
-                            } else {
-                              const dateKey = dataKey.includes("_current")
-                                ? `${metricName}_current_date`
-                                : `${metricName}_previous_date`
-                              const date = entry.payload[dateKey]
-                              const value = entry.value
-
-                              return (
-                                <div key={i} className="mb-2 last:mb-0">
-                                  <p className="text-xs font-semibold" style={{ color: entry.color }}>
-                                    {metricName} - {period}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">{date}</p>
-                                  <p className="text-sm font-bold">{formatValue(metricName, Number(value))}</p>
-                                </div>
-                              )
-                            }
-                          })}
-                        </div>
-                      )
-                    }}
-                  />
-                  <Legend
-                    formatter={(value) => {
-                      const isCurrentWeek = value.includes("_current")
-                      const metricName = value.replace("_current", "").replace("_previous", "")
-                      return `${metricName} (${isCurrentWeek ? "Current" : "Previous"})`
-                    }}
-                    wrapperStyle={{ paddingTop: "20px" }}
-                  />
-                  {selectedMetrics.map((metricName) => {
-                    const metricIndex = metrics.findIndex((m) => m.name === metricName)
-                    const baseColor = COLORS[metricIndex % COLORS.length]
-                    const isGMV = metricName.includes("GMV")
-                    const shouldShowAsArea = isGMV
-
-                    return (
-                      <React.Fragment key={metricName}>
-                        {shouldShowAsArea ? (
-                          <>
-                            <Area
-                              type="monotone"
-                              dataKey={`${metricName}_current`}
-                              name={`${metricName}_current`}
-                              stroke={baseColor}
-                              strokeWidth={3}
-                              fill={`url(#gradient-${metricName})`}
-                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
-                              activeDot={{ r: 6, strokeWidth: 2 }}
-                            />
-                            {showComparison && (
+                        <React.Fragment key={metricName}>
+                          {shouldShowAsArea ? (
+                            <>
                               <Area
                                 type="monotone"
-                                dataKey={`${metricName}_previous`}
-                                name={`${metricName}_previous`}
+                                dataKey={`${metricName}_current`}
+                                name={`${metricName}_current`}
                                 stroke={baseColor}
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                fill="none"
-                                dot={{ r: 3, fill: baseColor, opacity: 0.6 }}
-                                activeDot={{ r: 5 }}
-                                opacity={0.6}
+                                strokeWidth={3}
+                                fill={`url(#gradient-${metricName})`}
+                                dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                                activeDot={{ r: 6, strokeWidth: 2 }}
                               />
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <Line
-                              type="monotone"
-                              dataKey={`${metricName}_current`}
-                              name={`${metricName}_current`}
-                              stroke={baseColor}
-                              strokeWidth={3}
-                              dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
-                              activeDot={{ r: 6, strokeWidth: 2 }}
-                            />
-                            {showComparison && (
+                              {showComparison && (
+                                <Area
+                                  type="monotone"
+                                  dataKey={`${metricName}_previous`}
+                                  name={`${metricName}_previous`}
+                                  stroke={baseColor}
+                                  strokeWidth={2}
+                                  strokeDasharray="5 5"
+                                  fill="none"
+                                  dot={{ r: 3, fill: baseColor, opacity: 0.6 }}
+                                  activeDot={{ r: 5 }}
+                                  opacity={0.6}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <>
                               <Line
                                 type="monotone"
-                                dataKey={`${metricName}_previous`}
-                                name={`${metricName}_previous`}
+                                dataKey={`${metricName}_current`}
+                                name={`${metricName}_current`}
                                 stroke={baseColor}
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                dot={{ r: 3, fill: baseColor, opacity: 0.6 }}
-                                activeDot={{ r: 5 }}
-                                opacity={0.6}
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: baseColor, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                                activeDot={{ r: 6, strokeWidth: 2 }}
                               />
-                            )}
-                          </>
-                        )}
-                      </React.Fragment>
-                    )
-                  })}
-                </ComposedChart>
-              </ResponsiveContainer>
+                              {showComparison && (
+                                <Line
+                                  type="monotone"
+                                  dataKey={`${metricName}_previous`}
+                                  name={`${metricName}_previous`}
+                                  stroke={baseColor}
+                                  strokeWidth={2}
+                                  strokeDasharray="5 5"
+                                  dot={{ r: 3, fill: baseColor, opacity: 0.6 }}
+                                  activeDot={{ r: 5 }}
+                                  opacity={0.6}
+                                />
+                              )}
+                            </>
+                          )}
+                        </React.Fragment>
+                      )
+                    })}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
-  )
-}
-
-function MetricCheckbox({
-  metric,
-  isSelected,
-  onToggle,
-  color,
-  formatValue,
-}: {
-  metric: MetricAnalysis
-  isSelected: boolean
-  onToggle: (name: string) => void
-  color: string
-  formatValue: (name: string, value: number) => string
-}) {
-  const TrendIcon = metric.trend === "up" ? ArrowUpIcon : metric.trend === "down" ? ArrowDownIcon : MinusIcon
-  const trendColor =
-    metric.trend === "up" ? "text-emerald-600" : metric.trend === "down" ? "text-red-600" : "text-muted-foreground"
-
-  return (
-    <div className="flex items-start space-x-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-      <Checkbox id={metric.name} checked={isSelected} onCheckedChange={() => onToggle(metric.name)} className="mt-1" />
-      <div className="flex-1 space-y-1 min-w-0">
-        <Label htmlFor={metric.name} className="text-sm font-medium leading-tight cursor-pointer block">
-          {metric.name}
-        </Label>
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="font-semibold">
-            {formatValue(metric.name, metric.useAverage ? metric.currentWeek.average : metric.currentWeek.total)}
-          </span>
-          <div className={`flex items-center gap-1 ${trendColor} flex-shrink-0`}>
-            <TrendIcon className="h-3 w-3" />
-            <span className="font-medium">
-              {metric.changePercent > 0 ? "+" : ""}
-              {metric.changePercent.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-          <span
-            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${metric.aboveMedian ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
-          >
-            {metric.aboveMedian ? "Above" : "Below"} Median
-          </span>
-        </div>
       </div>
     </div>
   )
