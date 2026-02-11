@@ -10,7 +10,7 @@ import { Line, LineChart, Area, AreaChart, ComposedChart, XAxis, YAxis, Responsi
 import type { MetricAnalysis, MetricData } from "@/lib/data-processor"
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, CalendarIcon } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MetricCheckbox } from "./MetricCheckbox" // Import MetricCheckbox component
+import { MetricCheckbox } from "@/components/MetricCheckbox"
 
 interface UnifiedMetricChartProps {
   metrics: MetricAnalysis[]
