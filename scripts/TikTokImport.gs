@@ -3,6 +3,16 @@
  * Automatically processes TikTok data and updates product sheet tabs
  */
 
+/**
+ * Serves the Import.html interface as a web app
+ */
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Import')
+    .setTitle('TikTok Data Importer')
+    .setWidth(800)
+    .setHeight(600);
+}
+
 // Configuration - Product mappings
 const PRODUCT_CONFIG = {
   '7419818437414005546': { name: 'Toner Pads', sheet: 'Toner Pads', row: 6 },
