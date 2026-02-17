@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 40px;
+    }
+    
+    h1 {
+      color: #1a202c;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    
+    .file-upload-section {
+      margin-bottom: 24px;
+    }
+    
+    .file-label {
+      display: block;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    
+    .file-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      background: #f7fafc;
+      cursor: pointer;
+      font-size: 14px;
+      color: #4a5568;
+      transition: all 0.2s;
+    }
+    
+    .file-input:hover {
+      border-color: #667eea;
+      background: #edf2f7;
+    }
+    
+    .file-info {
+      font-size: 12px;
+      color: #718096;
+      margin-top: 4px;
+    }
+    
+    .button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 24px;
+    }
+    
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .status {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status.success {
+      background: #c6f6d5;
+      color: #22543d;
+      border: 1px solid #9ae6b4;
+    }
+    
+    .status.error {
+      background: #fed7d7;
+      color: #742a2a;
+      border: 1px solid #fc8181;
+    }
+    
+    .status.info {
+      background: #bee3f8;
+      color: #2c5282;
+      border: 1px solid #90cdf4;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .product-list {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+      display: none;
+    }
+    
+    .product-list h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 12px;
+    }
+    
+    .product-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .product-item:last-child {
+      border-bottom: none;
+    }
+    
+    .product-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #48bb78;
+      margin-right: 12px;
+    }
+    
+    .product-name {
+      font-size: 13px;
+      color: #4a5568;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TikTok Data Importer</h1>
+    <p class="subtitle">Upload your TikTok XLSX files to automatically update all product sheets</p>
+    
+    <form id="uploadForm">
+      <div class="file-upload-section">
+        <label class="file-label">Product List File (Required)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="productFile" accept=".xlsx,.xls" class="file-input" required>
+        </div>
+        <p class="file-info">Contains: Product ID, Date, GMV, Orders, Items Sold</p>
+      </div>
+      
+      <div class="file-upload-section">
+        <label class="file-label">Traffic Data File (Required)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="trafficFile" accept=".xlsx,.xls" class="file-input" required>
+        </div>
+        <p class="file-info">Contains: Product ID, Date, Visitors, Customers, Impressions, Page Views</p>
+      </div>
+      
+      <button type="submit" class="button" id="importBtn">
+        Import TikTok Data
+      </button>
+    </form>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Processing TikTok data and updating sheets...</p>
+    </div>
+    
+    <div class="status" id="status"></div>
+    
+    <div class="product-list" id="productList">
+      <h3>Products to be updated:</h3>
+      <div class="product-item">
+        <div class="product-icon"></div>
+        <div class="product-name">Toner Pads (1 Pack)</div>
+      </div>
+      <div class="product-item">
+        <div class="product-icon"></div>
+        <div class="product-name">Toner Pads - 2 Pack</div>
+      </div>
+      <div class="product-item">
+        <div class="product-icon"></div>
+        <div class="product-name">Toner Pads - 3 Pack</div>
+      </div>
+      <div class="product-item">
+        <div class="product-icon"></div>
+        <div class="product-name">NAD+ Cream</div>
+      </div>
+      <div class="product-item">
+        <div class="product-icon"></div>
+        <div class="product-name">Toner Pads & NAD+ Bundle</div>
+      </div>
+    </div>
+    
+    <script>
+      document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const productFile = document.getElementById('productFile').files[0];
+        const trafficFile = document.getElementById('trafficFile').files[0];
+        
+        if (!productFile || !trafficFile) {
+          showStatus('Please select both files', 'error');
+          return;
+        }
+        
+        showStatus('Uploading files and processing data...', 'info');
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('importBtn').disabled = true;
+        
+        // Read files and send to Google Apps Script
+        const reader1 = new FileReader();
+        const reader2 = new FileReader();
+        
+        reader1.onload = function(e1) {
+          const productData = new Uint8Array(e1.target.result);
+          
+          reader2.onload = function(e2) {
+            const trafficData = new Uint8Array(e2.target.result);
+            
+            // Convert to base64
+            const productBase64 = btoa(String.fromCharCode.apply(null, productData));
+            const trafficBase64 = btoa(String.fromCharCode.apply(null, trafficData));
+            
+            // Call Google Apps Script function
+            google.script.run
+              .withSuccessHandler(onSuccess)
+              .withFailureHandler(onError)
+              .importTikTokData(productBase64, trafficBase64);
+          };
+          reader2.readAsArrayBuffer(trafficFile);
+        };
+        reader1.readAsArrayBuffer(productFile);
+      });
+      
+      function onSuccess(result) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('importBtn').disabled = false;
+        document.getElementById('productList').style.display = 'block';
+        showStatus(`✓ Successfully imported ${result.recordsProcessed} records and updated ${result.sheetsUpdated} product sheets!`, 'success');
+      }
+      
+      function onError(error) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('importBtn').disabled = false;
+        showStatus('Error: ' + error.message, 'error');
+      }
+      
+      function showStatus(message, type) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = message;
+        statusDiv.className = 'status ' + type;
+        statusDiv.style.display = 'block';
+      }
+      
+      // Show product list on page load
+      document.getElementById('productList').style.display = 'block';
+    </script>
+  </div>
+</body>
+</html>
