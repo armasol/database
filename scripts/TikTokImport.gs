@@ -3,25 +3,32 @@
  * Automatically processes TikTok data and updates product sheet tabs
  */
 
+// ===== CONFIGURATION =====
+// Your Google Spreadsheet ID
+const SPREADSHEET_ID = '1hMTBUE9flfZocU2gQYBO9ogBgImsDghNJFaJ2MqAA2Q';
+
 /**
  * Serves the web app interface with routing
  */
 function doGet(e) {
-  var page = e.parameter.page;
+  var page = e.parameter.page || '';
   
   // Route to different pages
   if (page === 'import') {
     return HtmlService.createHtmlOutputFromFile('Import')
-      .setTitle('TikTok Data Importer')
-      .setWidth(800)
-      .setHeight(600);
+      .setTitle('TikTok Data Importer');
   }
   
   // Default to index page
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('TikTok Shop Analytics')
-    .setWidth(900)
-    .setHeight(700);
+    .setTitle('TikTok Shop Analytics');
+}
+
+/**
+ * Gets the spreadsheet by ID
+ */
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
 // Configuration - Product mappings
@@ -56,17 +63,88 @@ const TARGET_START_COL = 2; // Column C
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('TikTok Importer')
-    .addItem('Import TikTok Data', 'importTikTokData')
+    .addItem('Import TikTok Data', 'showImportPrompt')
     .addItem('Clear All Product Data', 'clearAllProductData')
     .addToUi();
+}
+
+/**
+ * Shows import prompt dialog
+ */
+function showImportPrompt() {
+  const html = HtmlService.createHtmlOutputFromFile('Import')
+    .setWidth(800)
+    .setHeight(600);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Import TikTok Data');
+}
+
+/**
+ * Processes uploaded XLSX files from web interface
+ */
+function processUploadedFiles(productBase64, trafficBase64) {
+  try {
+    // Decode base64 to blob
+    const productBlob = Utilities.newBlob(
+      Utilities.base64Decode(productBase64),
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'product.xlsx'
+    );
+    
+    const trafficBlob = Utilities.newBlob(
+      Utilities.base64Decode(trafficBase64),
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'traffic.xlsx'
+    );
+    
+    // Parse XLSX files
+    const productData = parseXLSX(productBlob);
+    const trafficData = parseXLSX(trafficBlob);
+    
+    // Merge and process data
+    const mergedData = mergeProductAndTrafficData(productData, trafficData);
+    
+    // Group by product
+    const productGroups = groupDataByProduct(mergedData);
+    
+    // Update sheets
+    const ss = getSpreadsheet();
+    let updatedCount = 0;
+    
+    for (const [productId, records] of Object.entries(productGroups)) {
+      const config = PRODUCT_CONFIG[productId];
+      if (config && updateProductSheet(ss, config, records)) {
+        updatedCount++;
+      }
+    }
+    
+    return {
+      success: true,
+      recordsProcessed: mergedData.length,
+      sheetsUpdated: updatedCount
+    };
+    
+  } catch (error) {
+    Logger.log(`Error processing files: ${error.toString()}`);
+    throw new Error(`Failed to process files: ${error.toString()}`);
+  }
+}
+
+/**
+ * Parses XLSX file blob and returns array of row data
+ */
+function parseXLSX(blob) {
+  // Note: Google Apps Script doesn't have native XLSX parsing
+  // This is a simplified version - you may need to pre-process files to CSV
+  // or use a library like SheetJS
+  throw new Error('XLSX parsing not implemented. Please convert files to CSV first or upload to a temp sheet.');
 }
 
 /**
  * Main import function - reads TikTok data and updates all product sheets
  */
 function importTikTokData() {
+  const ss = getSpreadsheet();
   const ui = SpreadsheetApp.getUi();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   // Prompt user for source sheet name
   const response = ui.prompt(
@@ -285,6 +363,7 @@ function writeDataRow(sheet, row, startCol, data) {
  * Clears all product data from all configured sheets
  */
 function clearAllProductData() {
+  const ss = getSpreadsheet();
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     'Clear All Data',
@@ -295,8 +374,6 @@ function clearAllProductData() {
   if (response !== ui.Button.YES) {
     return;
   }
-  
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   
   for (const config of Object.values(PRODUCT_CONFIG)) {
     const sheet = ss.getSheetByName(config.sheet);
