@@ -4,13 +4,24 @@
  */
 
 /**
- * Serves the Import.html interface as a web app
+ * Serves the web app interface with routing
  */
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Import')
-    .setTitle('TikTok Data Importer')
-    .setWidth(800)
-    .setHeight(600);
+function doGet(e) {
+  var page = e.parameter.page;
+  
+  // Route to different pages
+  if (page === 'import') {
+    return HtmlService.createHtmlOutputFromFile('Import')
+      .setTitle('TikTok Data Importer')
+      .setWidth(800)
+      .setHeight(600);
+  }
+  
+  // Default to index page
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('TikTok Shop Analytics')
+    .setWidth(900)
+    .setHeight(700);
 }
 
 // Configuration - Product mappings
